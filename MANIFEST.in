@@ -1,0 +1,3 @@
+recursive-include geometryIO *
+include *.rst
+global-exclude *.pyc
