@@ -53,6 +53,9 @@ class TestGeometryIO(unittest.TestCase):
         self.assertEqual(result[0].strip(), geometryIO.proj4LL)
         self.assertEqual(len(result[1]), len(shapelyGeometries))
 
+        print 'Overwrite an existing compressed shapefile'
+        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
+
         print 'Save and load a shapefile with attributes'
         path = self.getPath('.shp')
         geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions)
@@ -104,6 +107,8 @@ class TestGeometryIO(unittest.TestCase):
         transformGeometry = geometryIO.get_transformGeometry(geometryIO.proj4LL, geometryIO.proj4SM)
         self.assertEqual(type(transformGeometry(geometry.Point(0, 0))), type(geometry.Point(0, 0)))
         self.assertEqual(type(transformGeometry(ogr.CreateGeometryFromWkt('POINT (0 0)'))), type(ogr.CreateGeometryFromWkt('POINT (0 0)')))
+        with self.assertRaises(geometryIO.GeometryError):
+            transformGeometry(geometry.Point(1000, 1000))
 
         print 'Test get_coordinateTransformation'
         geometryIO.get_coordinateTransformation(geometryIO.proj4LL, geometryIO.proj4SM)

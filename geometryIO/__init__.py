@@ -8,7 +8,7 @@ please see http://www.gdal.org/ogr/ogr_formats.html
 import os
 import itertools
 import archiveIO
-from osgeo import ogr, osr
+from osgeo import gdal, ogr, osr
 from shapely import wkb, geometry
 
 
@@ -52,8 +52,6 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
             feature.SetField(fieldIndex, fieldValue)
         # Save feature
         layer.CreateFeature(feature)
-        # Clean up
-        feature.Destroy()
     # Return
     return targetPath
 
@@ -121,9 +119,11 @@ def get_transformGeometry(sourceProj4, targetProj4=proj4LL):
         # If we have a shapelyGeometry, convert it to a gdalGeometry
         if isShapely:
             g = ogr.CreateGeometryFromWkb(g.wkb)
-        # If we could not transform the gdalGeometry,
-        if g.Transform(coordinateTransformation):
-            raise GeometryError('Could not transform geometry: %s' % g.ExportToWkt())
+        try:
+            g.Transform(coordinateTransformation)
+        except RuntimeError, error:
+            gdal.ErrorReset()
+            raise GeometryError('Could not transform %s: %s' % (g.ExportToWkt(), error))
         # If we originally had a shapelyGeometry, convert it back
         if isShapely:
             g = wkb.loads(g.ExportToWkb())
@@ -143,8 +143,10 @@ def get_coordinateTransformation(sourceProj4, targetProj4=proj4LL):
 def get_spatialReference(proj4):
     'Return a SpatialReference from proj4'
     spatialReference = osr.SpatialReference()
-    if spatialReference.ImportFromProj4(proj4):
-        raise GeometryError('Could not import proj4: %s' % proj4)
+    try:
+        spatialReference.ImportFromProj4(proj4)
+    except RuntimeError, error:
+        raise GeometryError("Could not import proj4='%s'" % proj4)
     return spatialReference
 
 
@@ -170,3 +172,8 @@ def get_geometryType(shapelyGeometries):
 class GeometryError(Exception):
     'Exception raised when there is an error loading or saving geometries'
     pass
+
+
+gdal.UseExceptions()
+ogr.UseExceptions()
+osr.UseExceptions()
