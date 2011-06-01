@@ -80,10 +80,10 @@ Run code
         sourcePath='polygons.shp.zip', 
         # Transform coordinates to longitude and latitude
         targetProj4=geometryIO.proj4LL)
-    for shapelyGeometry, fieldPack in itertools.izip(shapelyGeometries, fieldPacks):
+    for shapelyGeometry, fPack in itertools.izip(shapelyGeometries, fieldPacks):
         print
-        for fieldValue, (fieldName, fieldType) in itertools.izip(fieldPack, fieldDefinitions):
-            print '%s = %s' % (fieldName, fieldValue)
+        for fValue, (fName, fType) in itertools.izip(fPack, fieldDefinitions):
+            print '%s = %s' % (fName, fValue)
         print shapelyGeometry
 
     geometryIO.save_points(
