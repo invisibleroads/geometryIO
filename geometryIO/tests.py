@@ -3,7 +3,6 @@ import os
 import shutil
 import itertools
 import tempfile
-import datetime
 import unittest
 from osgeo import ogr
 from shapely import geometry
@@ -16,14 +15,13 @@ shapelyGeometries = [
     geometry.Polygon([(10, 0), (10, 10), (20, 10), (20, 0), (10, 0)]),
 ]
 fieldPacks = [
-    ('xxx', 11111, 44444.44, datetime.date(1939, 9, 1)),
-    ('yyy', 22222, 88888.88, datetime.date(1950, 6, 25)),
+    ('xxx', 11111, 44444.44),
+    ('yyy', 22222, 88888.88),
 ]
 fieldDefinitions = [
     ('Name', ogr.OFTString),
     ('Population', ogr.OFTInteger),
     ('GDP', ogr.OFTReal),
-    ('Updated', ogr.OFTDate),
 ]
 
 
@@ -50,7 +48,7 @@ class TestGeometryIO(unittest.TestCase):
         path = self.getPath('.shp')
         geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
         result = geometryIO.load(path)
-        self.assertEqual(result[0].strip(), geometryIO.proj4LL)
+        self.assert_('+proj=longlat' in result[0])
         self.assertEqual(len(result[1]), len(shapelyGeometries))
 
         print 'Overwrite an existing compressed shapefile'
@@ -71,19 +69,19 @@ class TestGeometryIO(unittest.TestCase):
         path = self.getPath('.shp')
         geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions, targetProj4=geometryIO.proj4SM)
         result = geometryIO.load(path)
-        self.assertNotEqual(result[0].strip(), geometryIO.proj4LL)
+        self.assert_('+proj=longlat' not in result[0])
 
         print 'Load a shapefile with attributes with different targetProj4'
         path = self.getPath('.shp')
         geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions)
         result = geometryIO.load(path, targetProj4=geometryIO.proj4SM)
-        self.assertNotEqual(result[0].strip(), geometryIO.proj4LL)
+        self.assert_('+proj=longlat' not in result[0])
 
         print 'Save and load a compressed shapefile without attributes using save'
         path = self.getPath('.shp.zip')
         geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
         result = geometryIO.load(path)
-        self.assertEqual(result[0].strip(), geometryIO.proj4LL)
+        self.assert_('+proj=longlat' in result[0])
         self.assertEqual(len(result[1]), len(shapelyGeometries))
 
         print 'Save and load a compressed shapefile with attributes using save'

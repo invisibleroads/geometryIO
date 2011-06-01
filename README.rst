@@ -39,7 +39,7 @@ Run code
 
     import geometryIO
     import itertools
-    import datetime
+    from osgeo import ogr
     from shapely import geometry
 
     geometryIO.save(
@@ -58,12 +58,10 @@ Run code
                 'xxx', 
                 11111, 
                 44444.44, 
-                datetime.date(1939, 9, 1),
             ), (
                 'yyy', 
                 22222, 
                 88888.88, 
-                datetime.date(1950, 6, 25),
             ),
         ],
         # Define attributes
@@ -71,7 +69,6 @@ Run code
             ('Name', ogr.OFTString),
             ('Population', ogr.OFTInteger),
             ('GDP', ogr.OFTReal),
-            ('Updated', ogr.OFTDate),
         ],
         # Specify desired vector format
         driverName='ESRI Shapefile', 
