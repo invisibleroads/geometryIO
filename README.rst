@@ -5,19 +5,36 @@ Here is a GDAL wrapper for reading and writing geospatial data to a variety of v
 
 Installation
 ------------
-You may need to install the geospatial dependencies separately.
+Here are instructions for installing ``geometryIO`` in a `virtualenv <http://www.virtualenv.org>`_.
 ::
 
-    yum -y install gdal-devel geos-devel proj-devel
-
-Install the package.
-::
-
+    # Prepare isolated environment
+    PYRAMID_ENV=$HOME/Projects/pyramid-env
+    virtualenv --no-site-packages $PYRAMID_ENV 
+    # Activate isolated environment
+    source $PYRAMID_ENV/bin/activate
+    # Install GDAL
+    wget http://download.osgeo.org/gdal/gdal-1.8.0.tar.gz
+    tar xzvf gdal-1.8.0.tar.gz
+    cd gdal-1.8.0
+    ./configure --prefix=$PYRAMID_ENV --with-python
+    make install
+    # Install package
+    export LD_LIBRARY_PATH=$PYRAMID_ENV/lib:$LD_LIBRARY_PATH
     easy_install -U geometryIO
 
 
 Usage
 -----
+Prepare environment
+::
+
+    PYRAMID_ENV=$HOME/Projects/pyramid-env
+    source $PYRAMID_ENV/bin/activate
+    export LD_LIBRARY_PATH=$PYRAMID_ENV/lib:$LD_LIBRARY_PATH
+    ipython
+
+Run code
 ::
 
     import geometryIO
