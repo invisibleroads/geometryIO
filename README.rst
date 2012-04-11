@@ -10,15 +10,34 @@ Here are instructions for installing ``geometryIO`` in a `virtualenv <http://www
 
     # Prepare isolated environment
     ENV=$HOME/Projects/env
-    virtualenv --no-site-packages $ENV 
+    virtualenv $ENV 
+    mkdir $ENV/opt
+
     # Activate isolated environment
     source $ENV/bin/activate
-    # Install GDAL
-    wget http://download.osgeo.org/gdal/gdal-1.8.0.tar.gz
-    tar xzvf gdal-1.8.0.tar.gz
-    cd gdal-1.8.0
-    ./configure --prefix=$ENV --with-python
+
+    # Enable GDAL KML support
+    EXPAT_VERSION=2.0.1
+    EXPAT_FILENAME=expat-$EXPAT_VERSION
+    cd $ENV/opt
+    wget http://sourceforge.net/projects/expat/files/expat/$EXPAT_VERSION/$EXPAT_FILENAME.tar.gz/download
+    tar xzvf $EXPAT_FILENAME.tar.gz
+    cd $EXPAT_FILENAME
+    ./configure --prefix=$ENV
+    make
     make install
+
+    # Install GDAL
+    sudo yum -y install swig
+    GDAL_VERSION=1.9.0
+    GDAL_FILENAME=gdal-$GDAL_VERSION
+    cd $ENV/opt
+    wget http://download.osgeo.org/gdal/$GDAL_FILENAME.tar.gz
+    tar xzvf $GDAL_FILENAME.tar.gz
+    cd $GDAL_FILENAME
+    ./configure --prefix=$ENV --with-expat=$ENV --with-python 
+    make install
+
     # Install package
     export LD_LIBRARY_PATH=$ENV/lib:$LD_LIBRARY_PATH
     easy_install -U geometryIO
@@ -38,6 +57,7 @@ Run code
 ::
 
     import geometryIO
+    import datetime
     import itertools
     from osgeo import ogr
     from shapely import geometry
@@ -54,21 +74,15 @@ Run code
         ],
         # Specify attributes for each geometry
         fieldPacks=[
-            (
-                'xxx', 
-                11111, 
-                44444.44, 
-            ), (
-                'yyy', 
-                22222, 
-                88888.88, 
-            ),
+            ('xxx', 11111, 44444.44, datetime.datetime(1980, 1, 1)),
+            ('yyy', 22222, 88888.88, datetime.datetime(1990, 1, 1)),
         ],
         # Define attributes
         fieldDefinitions=[
             ('Name', ogr.OFTString),
             ('Population', ogr.OFTInteger),
             ('GDP', ogr.OFTReal),
+            ('Date', ogr.OFTDate),
         ],
         # Specify desired vector format
         driverName='ESRI Shapefile', 
