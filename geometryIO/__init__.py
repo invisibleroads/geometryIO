@@ -5,9 +5,10 @@ to a variety of vector formats.
 For a list of supported vector formats and driver names,
 please see http://www.gdal.org/ogr/ogr_formats.html
 """
-import os
-import itertools
 import archiveIO
+import datetime
+import os
+from itertools import izip
 from osgeo import gdal, ogr, osr
 from shapely import wkb, geometry
 
@@ -44,13 +45,13 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
     featureDefinition = layer.GetLayerDefn()
     # Save features
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
-    for shapelyGeometry, fieldPack in itertools.izip(shapelyGeometries, fieldPacks) if fieldPacks else ((x, []) for x in shapelyGeometries):
-        # Prepare feature
+    for shapelyGeometry, fieldPack in izip(shapelyGeometries, fieldPacks) if fieldPacks else ((x, []) for x in shapelyGeometries):
+        # Prepare
         feature = ogr.Feature(featureDefinition)
         feature.SetGeometry(transformGeometry(ogr.CreateGeometryFromWkb(shapelyGeometry.wkb)))
         for fieldIndex, fieldValue in enumerate(fieldPack):
-            feature.SetField(fieldIndex, fieldValue)
-        # Save feature
+            feature.SetField2(fieldIndex, fieldValue)
+        # Save
         layer.CreateFeature(feature)
     # Return
     return targetPath
@@ -73,20 +74,47 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     featureDefinition = layer.GetLayerDefn()
     fieldIndices = xrange(featureDefinition.GetFieldCount())
     fieldDefinitions = []
+    fieldTypes = []
     for fieldIndex in fieldIndices:
         fieldDefinition = featureDefinition.GetFieldDefn(fieldIndex)
-        fieldDefinitions.append((fieldDefinition.GetName(), fieldDefinition.GetType()))
+        fieldType = fieldDefinition.GetType()
+        fieldTypes.append(fieldType)
+        fieldDefinitions.append((fieldDefinition.GetName(), fieldType))
     # Get spatialReference
     spatialReference = layer.GetSpatialRef()
     sourceProj4 = spatialReference.ExportToProj4() if spatialReference else '' or sourceProj4
     # Load shapelyGeometries and fieldPacks
     shapelyGeometries, fieldPacks = [], []
+    methodNameByType = {
+        ogr.OFTDate: 'GetFieldAsDateTime',
+        ogr.OFTDateTime: 'GetFieldAsDateTime',
+        ogr.OFTInteger: 'GetFieldAsInteger',
+        ogr.OFTIntegerList: 'GetFieldAsIntegerList',
+        ogr.OFTReal: 'GetFieldAsDouble',
+        ogr.OFTRealList: 'GetFieldAsDoubleList',
+        ogr.OFTString: 'GetFieldAsString',
+        ogr.OFTStringList: 'GetFieldAsStringList',
+        ogr.OFTWideString: 'GetFieldAsString',
+        ogr.OFTWideStringList: 'GetFieldAsStringList',
+    }
+    def get_fieldPack(f):
+        fieldPack = []
+        for fieldIndex, fieldType in izip(fieldIndices, fieldTypes):
+            try:
+                methodName = methodNameByType[fieldType]
+            except KeyError: # pragma: no cover
+                methodName = 'GetField'
+            fieldValue = getattr(f, methodName)(fieldIndex)
+            if fieldType in (ogr.OFTDate, ogr.OFTDateTime):
+                fieldValue = datetime.datetime(*fieldValue)
+            fieldPack.append(fieldValue)
+        return tuple(fieldPack)
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
     feature = layer.GetNextFeature()
     while feature:
         # Append
         shapelyGeometries.append(wkb.loads(transformGeometry(feature.GetGeometryRef()).ExportToWkb()))
-        fieldPacks.append([feature.GetField(x) for x in fieldIndices])
+        fieldPacks.append(get_fieldPack(feature))
         # Get the next feature
         feature = layer.GetNextFeature()
     # Return

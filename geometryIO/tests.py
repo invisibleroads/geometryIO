@@ -1,34 +1,117 @@
-'Tests for geometryIO'
+# -*- coding: utf-8 -*-
+from itertools import izip
+from geometryIO import GeometryError, save, save_points, load, load_points, get_coordinateTransformation, get_geometryType, get_spatialReference, get_transformPoint, get_transformGeometry, proj4LL, proj4SM
+from osgeo.ogr import CreateGeometryFromWkt, OFTString, OFTInteger, OFTReal, OFTDate, OFTDateTime, wkbPolygon
+from shapely.geometry import Polygon, Point
 import os
+import datetime
 import shutil
-import itertools
 import tempfile
 import unittest
-from osgeo import ogr
-from shapely import geometry
-
-import geometryIO
 
 
-shapelyGeometries = [
-    geometry.Polygon([(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]),
-    geometry.Polygon([(10, 0), (10, 10), (20, 10), (20, 0), (10, 0)]),
+sourceGeometries = [
+    Polygon([(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]),
 ]
 fieldPacks = [
     ('xxx', 11111, 44444.44),
-    ('yyy', 22222, 88888.88),
 ]
 fieldDefinitions = [
-    ('Name', ogr.OFTString),
-    ('Population', ogr.OFTInteger),
-    ('GDP', ogr.OFTReal),
+    ('Name', OFTString),
+    ('Population', OFTInteger),
+    ('GDP', OFTReal),
 ]
 
 
 class TestGeometryIO(unittest.TestCase):
-    'Demonstrate usage'
 
-    index = 0
+    def test_save_and_load_work(self):
+        path = self.get_path('.shp.zip')
+        save(path, proj4LL, sourceGeometries)
+        targetProj4, targetGeometries = load(path)[:2]
+        self.assert_('+proj=longlat' in targetProj4)
+        for sourceGeometry, targetGeometry in izip(sourceGeometries, targetGeometries):
+            self.assert_(sourceGeometry.equals(targetGeometry))
+
+    def test_save_and_load_attributes_work(self):
+        fieldPacks = [(
+            # 'Спасибо'.decode('utf-8'), 
+            datetime.datetime(2000, 1, 1),
+        )]
+        fieldDefinitions = [
+            # ('String', OFTString),
+            ('Date', OFTDate),
+        ]
+        path = self.get_path()
+        save(path, proj4LL, sourceGeometries, fieldPacks, fieldDefinitions)
+        for sourceField, targetField in izip(fieldPacks[0], load(path)[2][0]):
+            self.assertEqual(sourceField, targetField)
+
+    def test_save_and_load_points_work(self):
+        path = self.get_path('.shp.tar.gz')
+        save_points(path, proj4LL, [(0, 0)], fieldPacks, fieldDefinitions)
+        self.assertEqual(load_points(path)[1], [(0, 0)])
+
+    def test_save_with_targetProj4_works(self):
+        path = self.get_path()
+        save(path, proj4LL, sourceGeometries, targetProj4=proj4SM)
+        self.assert_('+proj=longlat' not in load(path)[0])
+
+    def test_load_with_targetProj4_works(self):
+        path = self.get_path()
+        save(path, proj4LL, sourceGeometries)
+        self.assert_('+proj=longlat' not in load(path, targetProj4=proj4SM)[0])
+
+    def test_save_overwrites_existing_targetPath(self):
+        path = self.get_path()
+        for x in xrange(2):
+            save(path, proj4LL, sourceGeometries)
+
+    def test_save_raises_exceptions(self):
+        path = self.get_path()
+        # A geometry has fewer attributes than are actually defined
+        with self.assertRaises(GeometryError):
+            save(path, proj4LL, sourceGeometries, [x[1:] for x in fieldPacks], fieldDefinitions)
+        # A geometry has more attributes than are actually defined
+        with self.assertRaises(GeometryError):
+            save(path, proj4LL, sourceGeometries, [x * 2 for x in fieldPacks], fieldDefinitions)
+        # The driverName is unrecognized
+        with self.assertRaises(GeometryError):
+            save(path, proj4LL, sourceGeometries, driverName='')
+
+    def test_load_raises_exceptions(self):
+        # The format is unrecognized
+        path = self.get_path('')
+        with self.assertRaises(GeometryError):
+            load(path)
+
+    def test_get_coordinateTransformation_runs(self):
+        get_coordinateTransformation(proj4LL, proj4SM)
+
+    def test_get_geometryType(self):
+        self.assertEqual(get_geometryType(sourceGeometries), wkbPolygon)
+
+    def test_get_spatialReference_runs(self):
+        get_spatialReference(proj4LL)
+        with self.assertRaises(GeometryError):
+            get_spatialReference('')
+
+    def test_get_transformGeometry_runs(self):
+        transformGeometry = get_transformGeometry(proj4LL, proj4SM)
+        self.assertEqual(type(transformGeometry(Point(0, 0))), type(Point(0, 0)))
+        self.assertEqual(type(transformGeometry(CreateGeometryFromWkt('POINT (0 0)'))), type(CreateGeometryFromWkt('POINT (0 0)')))
+        with self.assertRaises(GeometryError):
+            transformGeometry(Point(1000, 1000))
+
+    def test_get_transformPoint_runs(self):
+        transformPoint0 = get_transformPoint(proj4LL, proj4LL)
+        transformPoint1 = get_transformPoint(proj4LL, proj4SM)
+        self.assertNotEqual(transformPoint0(0, 0), transformPoint1(0, 0))
+
+    def get_path(self, fileExtension='.shp'):
+        'Return a temporaryFolder path with the given fileExtension'
+        self.pathIndex += 1
+        return os.path.join(self.temporaryFolder, str(self.pathIndex) + fileExtension)
 
     def setUp(self):
         self.temporaryFolder = tempfile.mkdtemp()
@@ -36,105 +119,4 @@ class TestGeometryIO(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temporaryFolder)
 
-    def getPath(self, fileExtension):
-        'Return a path with the given fileExtension in temporaryFolder'
-        self.index += 1
-        return os.path.join(self.temporaryFolder, str(self.index) + fileExtension)
-
-    def test(self):
-        'Run tests'
-
-        print 'Save and load a shapefile without attributes'
-        path = self.getPath('.shp')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
-        result = geometryIO.load(path)
-        self.assert_('+proj=longlat' in result[0])
-        self.assertEqual(len(result[1]), len(shapelyGeometries))
-
-        print 'Overwrite an existing compressed shapefile'
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
-
-        print 'Save and load a shapefile with attributes'
-        path = self.getPath('.shp')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions)
-        result = geometryIO.load(path)
-        self.assertEqual(len(result[2]), len(fieldPacks))
-        for shapelyGeometry, fieldPack in itertools.izip(result[1], result[2]):
-            print
-            for fieldValue, (fieldName, fieldType) in itertools.izip(fieldPack, result[3]):
-                print '%s = %s' % (fieldName, fieldValue)
-            print shapelyGeometry
-
-        print 'Save a shapefile with attributes with different targetProj4'
-        path = self.getPath('.shp')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions, targetProj4=geometryIO.proj4SM)
-        result = geometryIO.load(path)
-        self.assert_('+proj=longlat' not in result[0])
-
-        print 'Load a shapefile with attributes with different targetProj4'
-        path = self.getPath('.shp')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions)
-        result = geometryIO.load(path, targetProj4=geometryIO.proj4SM)
-        self.assert_('+proj=longlat' not in result[0])
-
-        print 'Save and load a compressed shapefile without attributes using save'
-        path = self.getPath('.shp.zip')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries)
-        result = geometryIO.load(path)
-        self.assert_('+proj=longlat' in result[0])
-        self.assertEqual(len(result[1]), len(shapelyGeometries))
-
-        print 'Save and load a compressed shapefile with attributes using save'
-        path = self.getPath('.shp.zip')
-        geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, fieldPacks, fieldDefinitions)
-        result = geometryIO.load(path)
-        self.assertEqual(len(result[2]), len(fieldPacks))
-
-        print 'Test saving and loading compressed shapefiles of point coordinates'
-        path = self.getPath('.shp.tar.gz')
-        geometryIO.save_points(path, geometryIO.proj4LL, [(0, 0)], fieldPacks, fieldDefinitions)
-        result = geometryIO.load_points(path)
-        self.assertEqual(result[1], [(0, 0)])
-
-        print 'Test get_transformPoint'
-        transformPoint0 = geometryIO.get_transformPoint(geometryIO.proj4LL, geometryIO.proj4LL)
-        transformPoint1 = geometryIO.get_transformPoint(geometryIO.proj4LL, geometryIO.proj4SM)
-        self.assertNotEqual(transformPoint0(0, 0), transformPoint1(0, 0))
-
-        print 'Test get_transformGeometry'
-        transformGeometry = geometryIO.get_transformGeometry(geometryIO.proj4LL, geometryIO.proj4SM)
-        self.assertEqual(type(transformGeometry(geometry.Point(0, 0))), type(geometry.Point(0, 0)))
-        self.assertEqual(type(transformGeometry(ogr.CreateGeometryFromWkt('POINT (0 0)'))), type(ogr.CreateGeometryFromWkt('POINT (0 0)')))
-        with self.assertRaises(geometryIO.GeometryError):
-            transformGeometry(geometry.Point(1000, 1000))
-
-        print 'Test get_coordinateTransformation'
-        geometryIO.get_coordinateTransformation(geometryIO.proj4LL, geometryIO.proj4SM)
-
-        print 'Test get_spatialReference'
-        geometryIO.get_spatialReference(geometryIO.proj4LL)
-        with self.assertRaises(geometryIO.GeometryError):
-            geometryIO.get_spatialReference('')
-
-        print 'Test get_geometryType'
-        geometryIO.get_geometryType(shapelyGeometries)
-
-        print 'Test save() when a fieldPack has fewer fields than definitions'
-        with self.assertRaises(geometryIO.GeometryError):
-            path = self.getPath('.shp')
-            geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, [x[1:] for x in fieldPacks], fieldDefinitions)
-
-        print 'Test save() when a fieldPack has more fields than definitions'
-        with self.assertRaises(geometryIO.GeometryError):
-            path = self.getPath('.shp')
-            geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, [x * 2 for x in fieldPacks], fieldDefinitions)
-
-        print 'Test save() when the driverName is unrecognized'
-        with self.assertRaises(geometryIO.GeometryError):
-            path = self.getPath('.shp')
-            geometryIO.save(path, geometryIO.proj4LL, shapelyGeometries, driverName='')
-
-        print 'Test load() when format is unrecognized'
-        with self.assertRaises(geometryIO.GeometryError):
-            path = self.getPath('')
-            geometryIO.load(path)
+    pathIndex = 0
