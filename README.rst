@@ -16,17 +16,6 @@ Here are instructions for installing ``geometryIO`` in a `virtualenv <http://www
     # Activate isolated environment
     source $ENV/bin/activate
 
-    # Enable GDAL KML support
-    EXPAT_VERSION=2.0.1
-    EXPAT_FILENAME=expat-$EXPAT_VERSION
-    cd $ENV/opt
-    wget http://sourceforge.net/projects/expat/files/expat/$EXPAT_VERSION/$EXPAT_FILENAME.tar.gz/download
-    tar xzvf $EXPAT_FILENAME.tar.gz
-    cd $EXPAT_FILENAME
-    ./configure --prefix=$ENV
-    make
-    make install
-
     # Install GDAL
     sudo yum -y install swig
     GDAL_VERSION=1.9.0
@@ -35,7 +24,7 @@ Here are instructions for installing ``geometryIO`` in a `virtualenv <http://www
     wget http://download.osgeo.org/gdal/$GDAL_FILENAME.tar.gz
     tar xzvf $GDAL_FILENAME.tar.gz
     cd $GDAL_FILENAME
-    ./configure --prefix=$ENV --with-expat=$ENV --with-python 
+    ./configure --prefix=$ENV --with-python 
     make install
 
     # Install package
