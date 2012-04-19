@@ -1,7 +1,11 @@
+0.9.4
+-----
+- Improved handling of empty datetime fields
+
 0.9.3
 -----
 - Added support for datetime attributes
-- Replaced feature.SetField with feature.SetField2
+- Replaced feature.SetField() with feature.SetField2()
 
 0.9.2
 -----

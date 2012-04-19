@@ -106,7 +106,10 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
                 methodName = 'GetField'
             fieldValue = getattr(f, methodName)(fieldIndex)
             if fieldType in (ogr.OFTDate, ogr.OFTDateTime):
-                fieldValue = datetime.datetime(*fieldValue)
+                try:
+                    fieldValue = datetime.datetime(*fieldValue)
+                except ValueError:
+                    fieldValue = None
             fieldPack.append(fieldValue)
         return tuple(fieldPack)
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
