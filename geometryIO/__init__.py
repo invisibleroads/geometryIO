@@ -19,7 +19,7 @@ proj4SM = '+proj=merc +lon_0=0 +lat_ts=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +un
 
 @archiveIO.save
 def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
-    'Save shapelyGeometries using the given proj4 and fields'
+    'Save shapelyGeometries with targetProj4, fieldPacks, fieldDefinitions'
     # Validate arguments
     if not fieldPacks:
         fieldPacks = []
@@ -58,13 +58,13 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
 
 
 def save_points(targetPath, sourceProj4, coordinateTuples, fieldPacks=None, fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
-    'Save points using the given proj4 and fields'
+    'Save points with targetProj4, fieldPacks, fieldDefinitions'
     return save(targetPath, sourceProj4, [geometry.Point(x) for x in coordinateTuples], fieldPacks, fieldDefinitions, driverName, targetProj4)
 
 
-@archiveIO.load
+@archiveIO.load(extensions=['.shp'])
 def load(sourcePath, sourceProj4='', targetProj4=''):
-    'Load proj4, shapelyGeometries, fields'
+    'Load proj4, shapelyGeometries, fieldPacks, fieldDefinitions'
     # Get layer
     dataSource = ogr.Open(sourcePath)
     if not dataSource:
@@ -108,7 +108,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
             if fieldType in (ogr.OFTDate, ogr.OFTDateTime):
                 try:
                     fieldValue = datetime.datetime(*fieldValue)
-                except ValueError:
+                except ValueError: # pragma: no cover
                     fieldValue = None
             fieldPack.append(fieldValue)
         return tuple(fieldPack)
@@ -125,7 +125,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
 
 
 def load_points(sourcePath, sourceProj4='', targetProj4=''):
-    'Load proj4, points, fields'
+    'Load proj4, points, fieldPacks, fieldDefinitions'
     proj4, shapelyGeometries, fieldPacks, fieldDefinitions = load(sourcePath, sourceProj4, targetProj4)
     return proj4, [(point.x, point.y) for point in shapelyGeometries], fieldPacks, fieldDefinitions
 
