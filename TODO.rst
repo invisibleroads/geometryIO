@@ -1,2 +1,3 @@
-- make load() return an object with properties
-- include bounds as one of the properties
+Make load() return an object with properties
+Include bounds as one of the properties
+Change constants to be all caps
