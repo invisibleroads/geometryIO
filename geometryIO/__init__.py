@@ -13,8 +13,15 @@ from osgeo import gdal, ogr, osr
 from shapely import wkb, geometry
 
 
-proj4LL = '+proj=longlat +datum=WGS84 +no_defs'
-proj4SM = '+proj=merc +lon_0=0 +lat_ts=0 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs'
+def get_proj4(epsg):
+    'Return proj4 from epsg'
+    spatial_reference = osr.SpatialReference()
+    spatial_reference.ImportFromEPSG(epsg)
+    return spatial_reference.ExportToProj4()
+
+
+proj4LL = get_proj4(4326)
+proj4SM = get_proj4(900913)
 
 
 @archiveIO.save
@@ -172,7 +179,7 @@ def get_coordinateTransformation(sourceProj4, targetProj4=proj4LL):
 
 
 def get_spatialReference(proj4):
-    'Return a SpatialReference from proj4'
+    'Return SpatialReference from proj4'
     spatialReference = osr.SpatialReference()
     try:
         spatialReference.ImportFromProj4(proj4)
