@@ -191,7 +191,7 @@ def get_spatialReference(proj4):
 def get_geometryType(shapelyGeometries):
     'Determine geometry type for layer'
     geometryTypes = list(set(type(x) for x in shapelyGeometries))
-    return ogr.wkbUnknown if len(geometryTypes) > 1 else {
+    return ogr.wkbUnknown if not geometryTypes or len(geometryTypes) > 1 else {
         geometry.Point: ogr.wkbPoint,
         geometry.point.PointAdapter: ogr.wkbPoint,
         geometry.LineString: ogr.wkbLineString,
