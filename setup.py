@@ -1,4 +1,3 @@
-'Setup script for geometryIO'
 import os
 
 from setuptools import setup, find_packages
@@ -11,7 +10,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='geometryIO',
-    version='0.9.6',
+    version='0.9.7',
     description='GDAL wrapper for reading and writing geospatial data to a variety of vector formats',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',
@@ -22,12 +21,12 @@ setup(
     ],
     keywords='gdal shapely shapefile',
     author='Roy Hyunjin Han',
-    author_email='service@invisibleroads.com',
+    author_email='rhh@crosscompute.com',
     url='https://github.com/invisibleroads/geometryIO',
     install_requires=[
         'archiveIO',
-        'GDAL',
-        'shapely',
+        # 'GDAL',
+        # 'shapely',
     ],
     packages=find_packages(),
     include_package_data=True,
