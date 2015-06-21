@@ -10,7 +10,7 @@ CHANGES = open(os.path.join(here, 'CHANGES.rst')).read()
 
 setup(
     name='geometryIO',
-    version='0.9.7',
+    version='0.9.7.1',
     description='GDAL wrapper for reading and writing geospatial data to a variety of vector formats',
     long_description=README + '\n\n' +  CHANGES,
     license='MIT',

@@ -21,7 +21,7 @@ def get_proj4(epsg):
 
 
 proj4LL = get_proj4(4326)
-proj4SM = get_proj4(900913)
+proj4SM = get_proj4(3857)
 
 
 @archiveIO.save
