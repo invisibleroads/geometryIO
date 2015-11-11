@@ -1,5 +1,5 @@
 """
-GDAL wrapper for reading and writing geospatial data 
+GDAL wrapper for reading and writing geospatial data
 to a variety of vector formats.
 
 For a list of supported vector formats and driver names,
@@ -35,11 +35,11 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
     if fieldPacks and set(len(x) for x in fieldPacks) != set([len(fieldDefinitions)]):
         raise GeometryError('A field definition is required for each field')
     # Make dataSource
-    if os.path.exists(targetPath): 
+    if os.path.exists(targetPath):
         os.remove(targetPath)
     dataDriver = ogr.GetDriverByName(driverName)
     if not dataDriver:
-        raise GeometryError('Could not load driver: %s' % driverName)
+        raise GeometryError('Could not load driver "%s"' % driverName)
     dataSource = dataDriver.CreateDataSource(targetPath)
     # Make layer
     layerName = os.path.splitext(os.path.basename(targetPath))[0]
@@ -75,7 +75,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     # Get layer
     dataSource = ogr.Open(sourcePath)
     if not dataSource:
-        raise GeometryError('Could not load %s' % os.path.basename(sourcePath))
+        raise GeometryError('Could not load source "%s"' % os.path.basename(sourcePath))
     layer = dataSource.GetLayer()
     # Get fieldDefinitions from featureDefinition
     featureDefinition = layer.GetLayerDefn()
@@ -161,7 +161,7 @@ def get_transformGeometry(sourceProj4, targetProj4=proj4LL):
             g.Transform(coordinateTransformation)
         except RuntimeError, error:
             gdal.ErrorReset()
-            raise GeometryError('Could not transform %s: %s' % (g.ExportToWkt(), error))
+            raise GeometryError('Could not transform wkt "%s" (%s)' % (g.ExportToWkt(), error))
         # If we originally had a shapelyGeometry, convert it back
         if isShapely:
             g = wkb.loads(g.ExportToWkb())
@@ -173,9 +173,9 @@ def get_transformGeometry(sourceProj4, targetProj4=proj4LL):
 
 def get_coordinateTransformation(sourceProj4, targetProj4=proj4LL):
     'Return a CoordinateTransformation that can be used with gdalGeometry.transform()'
-    sourceSRS = get_spatialReference(sourceProj4)
-    targetSRS = get_spatialReference(targetProj4)
-    return osr.CoordinateTransformation(sourceSRS, targetSRS)
+    source_srs = get_spatialReference(sourceProj4)
+    target_srs = get_spatialReference(targetProj4)
+    return osr.CoordinateTransformation(source_srs, target_srs)
 
 
 def get_spatialReference(proj4):
@@ -183,8 +183,8 @@ def get_spatialReference(proj4):
     spatialReference = osr.SpatialReference()
     try:
         spatialReference.ImportFromProj4(proj4)
-    except RuntimeError, error:
-        raise GeometryError("Could not import proj4='%s'" % proj4)
+    except RuntimeError:
+        raise SpatialReferenceError('Could not import proj4 "%s"' % proj4)
     return spatialReference
 
 
@@ -209,6 +209,10 @@ def get_geometryType(shapelyGeometries):
 
 class GeometryError(Exception):
     'Exception raised when there is an error loading or saving geometries'
+    pass
+
+
+class SpatialReferenceError(GeometryError):
     pass
 
 
