@@ -8,7 +8,6 @@ please see http://www.gdal.org/ogr/ogr_formats.html
 import archiveIO
 import datetime
 import os
-from itertools import izip
 from osgeo import gdal, ogr, osr
 from shapely import wkb, geometry
 
@@ -52,7 +51,7 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
     featureDefinition = layer.GetLayerDefn()
     # Save features
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
-    for shapelyGeometry, fieldPack in izip(shapelyGeometries, fieldPacks) if fieldPacks else ((x, []) for x in shapelyGeometries):
+    for shapelyGeometry, fieldPack in zip(shapelyGeometries, fieldPacks) if fieldPacks else ((x, []) for x in shapelyGeometries):
         # Prepare
         feature = ogr.Feature(featureDefinition)
         feature.SetGeometry(transformGeometry(ogr.CreateGeometryFromWkb(shapelyGeometry.wkb)))
@@ -106,7 +105,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     }
     def get_fieldPack(f):
         fieldPack = []
-        for fieldIndex, fieldType in izip(fieldIndices, fieldTypes):
+        for fieldIndex, fieldType in zip(fieldIndices, fieldTypes):
             try:
                 methodName = methodNameByType[fieldType]
             except KeyError: # pragma: no cover
@@ -114,7 +113,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
             fieldValue = getattr(f, methodName)(fieldIndex)
             if fieldType in (ogr.OFTDate, ogr.OFTDateTime):
                 try:
-                    fieldValue = datetime.datetime(*fieldValue)
+                    fieldValue = datetime.datetime(*map(int, fieldValue))
                 except ValueError: # pragma: no cover
                     fieldValue = None
             fieldPack.append(fieldValue)
@@ -159,7 +158,7 @@ def get_transformGeometry(sourceProj4, targetProj4=proj4LL):
             g = ogr.CreateGeometryFromWkb(g.wkb)
         try:
             g.Transform(coordinateTransformation)
-        except RuntimeError, error:
+        except RuntimeError as error:
             gdal.ErrorReset()
             raise GeometryError('Could not transform wkt "%s" (%s)' % (g.ExportToWkt(), error))
         # If we originally had a shapelyGeometry, convert it back

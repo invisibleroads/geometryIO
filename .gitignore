@@ -1,6 +1,7 @@
+*.egg-info
 *.pyc
 *.swp
 .coverage
+.eggs
 build
 dist
-*.egg-info

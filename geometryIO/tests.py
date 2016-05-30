@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from itertools import izip
-from geometryIO import GeometryError, save, save_points, load, load_points, get_coordinateTransformation, get_geometryType, get_spatialReference, get_transformPoint, get_transformGeometry, proj4LL, proj4SM
-from osgeo.ogr import CreateGeometryFromWkt, OFTString, OFTInteger, OFTReal, OFTDate, OFTDateTime, wkbPolygon
+from geometryIO import (
+    GeometryError, save, save_points, load, load_points,
+    get_coordinateTransformation, get_geometryType, get_spatialReference,
+    get_transformPoint, get_transformGeometry, proj4LL, proj4SM)
+from osgeo.ogr import CreateGeometryFromWkt, OFTString, OFTInteger, OFTReal, OFTDate, wkbPolygon
 from shapely.geometry import Polygon, Point
 import os
 import datetime
@@ -30,12 +32,12 @@ class TestGeometryIO(unittest.TestCase):
         save(path, proj4LL, sourceGeometries)
         targetProj4, targetGeometries = load(path)[:2]
         self.assert_('+proj=longlat' in targetProj4)
-        for sourceGeometry, targetGeometry in izip(sourceGeometries, targetGeometries):
+        for sourceGeometry, targetGeometry in zip(sourceGeometries, targetGeometries):
             self.assert_(sourceGeometry.equals(targetGeometry))
 
     def test_save_and_load_attributes_work(self):
         fieldPacks = [(
-            # 'Спасибо'.decode('utf-8'), 
+            # 'Спасибо'.decode('utf-8'),
             datetime.datetime(2000, 1, 1),
         )]
         fieldDefinitions = [
@@ -44,7 +46,7 @@ class TestGeometryIO(unittest.TestCase):
         ]
         path = self.get_path()
         save(path, proj4LL, sourceGeometries, fieldPacks, fieldDefinitions)
-        for sourceField, targetField in izip(fieldPacks[0], load(path)[2][0]):
+        for sourceField, targetField in zip(fieldPacks[0], load(path)[2][0]):
             self.assertEqual(sourceField, targetField)
 
     def test_save_and_load_points_work(self):
@@ -64,7 +66,7 @@ class TestGeometryIO(unittest.TestCase):
 
     def test_save_overwrites_existing_targetPath(self):
         path = self.get_path()
-        for x in xrange(2):
+        for x in range(2):
             save(path, proj4LL, sourceGeometries)
 
     def test_save_raises_exceptions(self):

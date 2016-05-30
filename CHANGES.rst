@@ -1,3 +1,7 @@
+0.9.7
+-----
+- Fix Python 3 compatibility
+
 0.9.5
 -----
 - Prioritized shapefiles when loading archives containing multiple formats
