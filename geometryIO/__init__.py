@@ -121,9 +121,11 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
     feature = layer.GetNextFeature()
     while feature:
-        # Append
-        shapelyGeometries.append(wkb.loads(transformGeometry(feature.GetGeometryRef()).ExportToWkb()))
-        fieldPacks.append(get_fieldPack(feature))
+        gdal_geometry = feature.GetGeometryRef()
+        if gdal_geometry:
+            shapelyGeometries.append(wkb.loads(transformGeometry(
+                gdal_geometry).ExportToWkb()))
+            fieldPacks.append(get_fieldPack(feature))
         # Get the next feature
         feature = layer.GetNextFeature()
     # Return
