@@ -1,5 +1,4 @@
 import os
-
 from setuptools import setup, find_packages
 
 
@@ -12,7 +11,7 @@ setup(
     name='geometryIO',
     version='0.9.7.2',
     description='GDAL wrapper for reading and writing geospatial data to a variety of vector formats',
-    long_description=README + '\n\n' +  CHANGES,
+    long_description=README + '\n\n' + CHANGES,
     license='MIT',
     classifiers=[
         'Intended Audience :: Developers',
