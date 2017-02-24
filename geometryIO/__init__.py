@@ -8,6 +8,7 @@ please see http://www.gdal.org/ogr/ogr_formats.html
 import archiveIO
 import datetime
 import os
+import sys
 from osgeo import gdal, ogr, osr
 from shapely import wkb, geometry
 
@@ -24,14 +25,17 @@ proj4SM = get_proj4(3857)
 
 
 @archiveIO.save
-def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
+def save(
+        targetPath, sourceProj4, shapelyGeometries, fieldPacks=None,
+        fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
     'Save shapelyGeometries with targetProj4, fieldPacks, fieldDefinitions'
     # Validate arguments
     if not fieldPacks:
         fieldPacks = []
     if not fieldDefinitions:
         fieldDefinitions = []
-    if fieldPacks and set(len(x) for x in fieldPacks) != set([len(fieldDefinitions)]):
+    if fieldPacks and set(len(x) for x in fieldPacks) != set([len(
+            fieldDefinitions)]):
         raise GeometryError('A field definition is required for each field')
     # Make dataSource
     if os.path.exists(targetPath):
@@ -51,10 +55,13 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
     featureDefinition = layer.GetLayerDefn()
     # Save features
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
-    for shapelyGeometry, fieldPack in zip(shapelyGeometries, fieldPacks) if fieldPacks else ((x, []) for x in shapelyGeometries):
+    for shapelyGeometry, fieldPack in zip(
+        shapelyGeometries, fieldPacks
+    ) if fieldPacks else ((x, []) for x in shapelyGeometries):
         # Prepare
         feature = ogr.Feature(featureDefinition)
-        feature.SetGeometry(transformGeometry(ogr.CreateGeometryFromWkb(shapelyGeometry.wkb)))
+        feature.SetGeometry(transformGeometry(ogr.CreateGeometryFromWkb(
+            shapelyGeometry.wkb)))
         for fieldIndex, fieldValue in enumerate(fieldPack):
             feature.SetField2(fieldIndex, fieldValue)
         # Save
@@ -63,9 +70,13 @@ def save(targetPath, sourceProj4, shapelyGeometries, fieldPacks=None, fieldDefin
     return targetPath
 
 
-def save_points(targetPath, sourceProj4, coordinateTuples, fieldPacks=None, fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
+def save_points(
+        targetPath, sourceProj4, coordinateTuples, fieldPacks=None,
+        fieldDefinitions=None, driverName='ESRI Shapefile', targetProj4=''):
     'Save points with targetProj4, fieldPacks, fieldDefinitions'
-    return save(targetPath, sourceProj4, [geometry.Point(x) for x in coordinateTuples], fieldPacks, fieldDefinitions, driverName, targetProj4)
+    return save(targetPath, sourceProj4, [
+        geometry.Point(x) for x in coordinateTuples
+    ], fieldPacks, fieldDefinitions, driverName, targetProj4)
 
 
 @archiveIO.load(extensions=['.shp'])
@@ -74,7 +85,8 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     # Get layer
     dataSource = ogr.Open(sourcePath)
     if not dataSource:
-        raise GeometryError('Could not load source "%s"' % os.path.basename(sourcePath))
+        raise GeometryError(
+            'Could not load source "%s"' % os.path.basename(sourcePath))
     layer = dataSource.GetLayer()
     # Get fieldDefinitions from featureDefinition
     featureDefinition = layer.GetLayerDefn()
@@ -103,19 +115,24 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
         ogr.OFTWideString: 'GetFieldAsString',
         ogr.OFTWideStringList: 'GetFieldAsStringList',
     }
+
     def get_fieldPack(f):
         fieldPack = []
         for fieldIndex, fieldType in zip(fieldIndices, fieldTypes):
             try:
                 methodName = methodNameByType[fieldType]
-            except KeyError: # pragma: no cover
+            except KeyError:
                 methodName = 'GetField'
             fieldValue = getattr(f, methodName)(fieldIndex)
             if fieldType in (ogr.OFTDate, ogr.OFTDateTime):
                 try:
                     fieldValue = datetime.datetime(*map(int, fieldValue))
-                except ValueError: # pragma: no cover
+                except ValueError:
                     fieldValue = None
+            elif fieldType in (ogr.OFTString, ogr.OFTWideString):
+                fieldValue = unicode_safely(fieldValue)
+            elif fieldType in (ogr.OFTStringList, ogr.OFTWideStringList):
+                fieldValue = [unicode_safely(x) for x in fieldValue]
             fieldPack.append(fieldValue)
         return tuple(fieldPack)
     transformGeometry = get_transformGeometry(sourceProj4, targetProj4)
@@ -150,7 +167,9 @@ def get_transformGeometry(sourceProj4, targetProj4=proj4LL):
     'Return a function that transforms a geometry from one spatial reference to another'
     if not targetProj4 or sourceProj4 == targetProj4:
         return lambda x: x
-    coordinateTransformation = get_coordinateTransformation(sourceProj4, targetProj4)
+    coordinateTransformation = get_coordinateTransformation(
+        sourceProj4, targetProj4)
+
     def transformGeometry(g):
         'Transform a shapelyGeometry or gdalGeometry using coordinateTransformation'
         # Test for shapelyGeometry
@@ -202,10 +221,18 @@ def get_geometryType(shapelyGeometries):
         geometry.MultiPoint: ogr.wkbMultiPoint,
         geometry.multipoint.MultiPointAdapter: ogr.wkbMultiPoint,
         geometry.MultiLineString: ogr.wkbMultiLineString,
-        geometry.multilinestring.MultiLineStringAdapter: ogr.wkbMultiLineString,
+        geometry.multilinestring.MultiLineStringAdapter:
+            ogr.wkbMultiLineString,
         geometry.MultiPolygon: ogr.wkbMultiPolygon,
         geometry.multipolygon.MultiPolygonAdapter: ogr.wkbMultiPolygon,
     }[geometryTypes[0]]
+
+
+def unicode_safely(x):
+    # http://stackoverflow.com/a/23085282/192092
+    if not hasattr(x, 'decode'):
+        return x
+    return x.decode(sys.getfilesystemencoding())
 
 
 class GeometryError(Exception):
