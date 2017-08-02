@@ -83,7 +83,11 @@ def save_points(
 def load(sourcePath, sourceProj4='', targetProj4=''):
     'Load proj4, shapelyGeometries, fieldPacks, fieldDefinitions'
     # Get layer
-    dataSource = ogr.Open(sourcePath)
+    try:
+        dataSource = ogr.Open(sourcePath)
+    except RuntimeError:
+        raise GeometryError(
+            'Could not open source "%s"' % os.path.basename(sourcePath))
     if not dataSource:
         raise GeometryError(
             'Could not load source "%s"' % os.path.basename(sourcePath))
