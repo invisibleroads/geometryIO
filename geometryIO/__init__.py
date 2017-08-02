@@ -90,7 +90,7 @@ def load(sourcePath, sourceProj4='', targetProj4=''):
     layer = dataSource.GetLayer()
     # Get fieldDefinitions from featureDefinition
     featureDefinition = layer.GetLayerDefn()
-    fieldIndices = xrange(featureDefinition.GetFieldCount())
+    fieldIndices = range(featureDefinition.GetFieldCount())
     fieldDefinitions = []
     fieldTypes = []
     for fieldIndex in fieldIndices:
