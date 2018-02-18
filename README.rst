@@ -1,3 +1,6 @@
+NOTE: This package is no longer maintained. Please use `geotable <https://github.com/invisibleroads/geotable>`_ instead.
+
+
 geometryIO
 ==========
 Here is a GDAL wrapper for reading and writing geospatial data to a variety of vector formats.  For a list of supported vector formats and driver names, please see http://www.gdal.org/ogr/ogr_formats.html
